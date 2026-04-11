@@ -19,6 +19,14 @@ export default function GameTable({ gameState, socket }: { gameState: any, socke
   }, [minRaiseAmount, maxRaise, me?.chips]);
   
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  useEffect(() => {
+     const handleResize = () => setWindowWidth(window.innerWidth);
+     window.addEventListener('resize', handleResize);
+     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
      if (scrollRef.current) {
          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -48,10 +56,10 @@ export default function GameTable({ gameState, socket }: { gameState: any, socke
   };
 
   const renderPlayersOval = () => {
-     const tableWidth = 380;
-     const tableHeight = 180;
-     const radiusX = tableWidth / 2 + 30; 
-     const radiusY = tableHeight / 2 + 50;
+     const tableWidth = Math.min(windowWidth - 80, 360);
+     const tableHeight = 150;
+     const radiusX = tableWidth / 2 + 10; 
+     const radiusY = tableHeight / 2 + 20;
 
      const otherPlayers = gameState?.players.filter((p: any) => p.id !== socket.id) || [];
      const total = otherPlayers.length;
@@ -75,21 +83,28 @@ export default function GameTable({ gameState, socket }: { gameState: any, socke
                 top: `calc(50% + ${y}px)`, 
                 left: `calc(50% + ${x}px)`, 
                 transform: 'translate(-50%, -50%)',
-                background: isIsActiveTurn ? 'rgba(34, 197, 94, 0.15)' : 'rgba(15, 23, 42, 0.85)', 
-                padding: '10px 16px', borderRadius: 12,
+                background: isIsActiveTurn ? 'rgba(34, 197, 94, 0.15)' : 'rgba(15, 23, 42, 0.95)', 
+                padding: '6px 8px', borderRadius: 8,
                 border: isIsActiveTurn ? '2px solid var(--accent)' : '1px solid var(--border)', 
-                textAlign: 'center', minWidth: 100, zIndex: 5,
-                boxShadow: isIsActiveTurn ? '0 0 15px rgba(34, 197, 94, 0.4)' : 'none',
+                textAlign: 'center', minWidth: 64, maxWidth: 80, zIndex: 5,
+                boxShadow: isIsActiveTurn ? '0 0 10px rgba(34, 197, 94, 0.4)' : 'none',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                opacity: p.isSpectator ? 0.3 : 1
+                opacity: p.isSpectator ? 0.3 : 1,
+                display: 'flex', flexDirection: 'column', alignItems: 'center'
             }}>
-                {!p.isSpectator && <RoleBadge role={getRole(p.id)} />}
-                <div style={{ fontSize: 13, fontWeight: 700, color: isIsActiveTurn ? 'var(--accent)' : 'white' }}>{p.name} {p.isSpectator && '(Spectator)'}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>${p.chips}</div>
-                {isIsActiveTurn && <div style={{ fontSize: 10, color: 'var(--accent)', marginTop: 4, fontWeight: 800, animation: 'pulse 1s infinite' }}>THINKING</div>}
-                <div style={{ fontSize: 11, color: 'white', marginTop: 4, fontWeight: 600 }}>
-                    {p.isSpectator ? <span style={{color: 'var(--text-muted)'}}>Out</span> : p.folded ? <span style={{color: 'var(--danger)'}}>Folded</span> : p.isAllIn ? <span style={{color: '#f59e0b'}}>ALL IN</span> : p.currentBet > 0 ? <span style={{color: 'var(--accent)'}}>Bet: ${p.currentBet}</span> : ''}
-                </div>
+                {!p.isSpectator && getRole(p.id) && (
+                   <div style={{ position: 'absolute', top: -6, right: -6, background: 'var(--accent)', color: '#000', fontSize: 9, fontWeight: 900, borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #000', zIndex: 20 }}>
+                      {getRole(p.id)}
+                   </div>
+                )}
+                <div style={{ fontSize: 11, fontWeight: 800, color: isIsActiveTurn ? 'var(--accent)' : 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{p.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>${p.chips}</div>
+                {p.currentBet > 0 && <div style={{ fontSize: 10, color: 'white', marginTop: 2, background: 'rgba(255,255,255,0.1)', padding: '2px 4px', borderRadius: 4 }}>${p.currentBet}</div>}
+                {(p.folded || p.isAllIn || p.isSpectator) && (
+                   <div style={{ fontSize: 9, color: p.isSpectator ? 'var(--text-muted)' : p.folded ? 'var(--danger)' : '#f59e0b', marginTop: 2, fontWeight: 700 }}>
+                        {p.isSpectator ? 'OUT' : p.folded ? 'FOLD' : 'ALL IN'}
+                   </div>
+                )}
             </div>
         );
      });
@@ -209,12 +224,12 @@ export default function GameTable({ gameState, socket }: { gameState: any, socke
       )}
 
       {/* Poker Table Area */}
-      <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 20px' }}>
         <div style={{ 
-            width: '100%', maxWidth: '380px', height: '180px', 
+            width: '100%', maxWidth: '380px', height: '150px', 
             background: 'radial-gradient(ellipse at center, #064e3b 0%, #022c22 100%)', 
             borderRadius: '100px',
-            border: '8px solid #92400e',
+            border: '6px solid #92400e',
             boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 0 30px rgba(0,0,0,0.8)',
             position: 'relative',
             display: 'flex',
