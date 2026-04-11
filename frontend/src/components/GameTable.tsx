@@ -134,7 +134,13 @@ export default function GameTable({ gameState, socket }: { gameState: any, socke
              <div style={{ position: 'absolute', top: 35, right: 0, background: 'rgba(30,41,59,0.95)', border: '1px solid var(--border)', borderRadius: 8, padding: 8, zIndex: 100, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 140 }}>
                 <button className="btn btn-secondary" style={{ border: 'none', textAlign: 'left', background: 'transparent' }} onClick={() => { setShowRules(true); setShowMenu(false); }}>Show Rules</button>
                 <div style={{ height: 1, background: 'var(--border)' }}></div>
-                <button className="btn btn-secondary" style={{ border: 'none', textAlign: 'left', color: 'var(--danger)', background: 'transparent' }} onClick={() => socket.emit('leaveRoom')}>Exit Room</button>
+                <button className="btn btn-secondary" style={{ border: 'none', textAlign: 'left', color: 'var(--danger)', background: 'transparent' }} onClick={() => {
+                   const inGame = gameState?.phase !== 'waiting' && gameState?.phase !== 'gameOver';
+                   if (!inGame || window.confirm('Are you sure you want to leave? Your hand will be folded and your chips lost.')) {
+                     socket.emit('leaveRoom');
+                   }
+                   setShowMenu(false);
+                }}>Exit Room</button>
              </div>
            )}
         </div>

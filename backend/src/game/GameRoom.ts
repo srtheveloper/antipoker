@@ -82,14 +82,36 @@ export class GameRoom {
 
   removePlayer(id: string) {
     const player = this.players.find(p => p.id === id);
-    if (player) {
-      this.addLog(`${player.name} left the room.`);
-      if (this.phase !== 'waiting') player.folded = true; 
+    if (!player) return;
+
+    this.addLog(`${player.name} left the room.`);
+
+    // Safe to hard-remove when not mid-game
+    if (this.phase === 'waiting' || this.phase === 'gameOver' || this.phase === 'showdown') {
       this.players = this.players.filter(p => p.id !== id);
-      if (this.players.length === 1 && this.phase !== 'waiting' && this.phase !== 'showdown' && this.phase !== 'gameOver') {
-         this.endHand();
+      return;
+    }
+
+    // Mid-game: soft disconnect — keep index stable, treat as fold
+    player.isDisconnected = true;
+    player.folded = true;
+    player.acted = true;
+
+    // If it was this player's turn, advance the turn
+    const playerIndex = this.players.findIndex(p => p.id === id);
+    if (this.currentPlayerIndex === playerIndex) {
+      this.nextTurn();
+    } else {
+      // Check if the remaining active players are all done
+      const activePlayers = this.players.filter(p => !p.folded && !p.isSpectator && !p.isDisconnected);
+      if (activePlayers.length <= 1) {
+        this.endHand();
+      } else {
+        this.nextTurn();
       }
     }
+
+    this.broadcast();
   }
 
   startGame() {
@@ -101,6 +123,9 @@ export class GameRoom {
   }
 
   startHand() {
+    // Purge players who disconnected in a previous hand
+    this.players = this.players.filter(p => !p.isDisconnected);
+
     for (const player of this.players) {
         if (player.chips === 0) player.isSpectator = true;
     }
@@ -210,7 +235,7 @@ export class GameRoom {
   }
 
   nextTurn() {
-    const activePlayers = this.players.filter(p => !p.folded && !p.isSpectator);
+    const activePlayers = this.players.filter(p => !p.folded && !p.isSpectator && !p.isDisconnected);
     
     if (activePlayers.length === 1) {
         this.endHand();
@@ -227,7 +252,7 @@ export class GameRoom {
 
     let nextIndex = (this.currentPlayerIndex + 1) % this.players.length;
     let safeguard = 0;
-    while ((this.players[nextIndex].folded || this.players[nextIndex].isAllIn || this.players[nextIndex].isSpectator) && safeguard < this.players.length) {
+    while ((this.players[nextIndex].folded || this.players[nextIndex].isAllIn || this.players[nextIndex].isSpectator || this.players[nextIndex].isDisconnected) && safeguard < this.players.length) {
         nextIndex = (nextIndex + 1) % this.players.length;
         safeguard++;
     }
@@ -263,7 +288,7 @@ export class GameRoom {
 
       this.broadcast();
 
-      const playersWhoCanAct = this.players.filter(p => !p.folded && !p.isAllIn && !p.isSpectator);
+      const playersWhoCanAct = this.players.filter(p => !p.folded && !p.isAllIn && !p.isSpectator && !p.isDisconnected);
       if (playersWhoCanAct.length <= 1) {
           // Auto-advance to the next phase after 5 seconds to show the dealt cards
           setTimeout(() => {
@@ -274,7 +299,7 @@ export class GameRoom {
       } else {
           let nextIndex = (this.dealerIndex + 1) % this.players.length;
           let count = 0;
-          while ((this.players[nextIndex].folded || this.players[nextIndex].isAllIn || this.players[nextIndex].isSpectator) && count < this.players.length) {
+          while ((this.players[nextIndex].folded || this.players[nextIndex].isAllIn || this.players[nextIndex].isSpectator || this.players[nextIndex].isDisconnected) && count < this.players.length) {
               nextIndex = (nextIndex + 1) % this.players.length;
               count++;
           }
@@ -286,7 +311,7 @@ export class GameRoom {
   endHand() {
       if (this.phase === 'showdown' && this.showdownData) return; 
       this.phase = 'showdown';
-      const activePlayers = this.players.filter(p => !p.folded && !p.isSpectator);
+      const activePlayers = this.players.filter(p => !p.folded && !p.isSpectator && !p.isDisconnected);
       
       let winnersNames: string[] = [];
       let handDescription = "";

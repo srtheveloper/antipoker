@@ -12,6 +12,7 @@ export class Player {
   isAllIn: boolean;
   hasRebought: boolean;
   isSpectator: boolean;
+  isDisconnected: boolean;
 
   constructor(id: string, name: string, chips: number) {
     this.id = id;
@@ -25,6 +26,7 @@ export class Player {
     this.isAllIn = false;
     this.hasRebought = false;
     this.isSpectator = false;
+    this.isDisconnected = false;
   }
 
   resetForNewHand() {
