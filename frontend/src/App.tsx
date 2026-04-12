@@ -6,7 +6,8 @@ import GameTable from './components/GameTable';
 import './index.css';
 
 // Socket singleton
-const socket: Socket = io('http://localhost:3001');
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+const socket: Socket = io(BACKEND_URL);
 
 type ScreenState = 'entry' | 'lobby' | 'game';
 
