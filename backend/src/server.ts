@@ -7,6 +7,9 @@ import { GameRoom } from './game/GameRoom';
 const app = express();
 app.use(cors());
 
+// Health check endpoint used by Docker
+app.get('/health', (_req, res) => res.send('ok'));
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {

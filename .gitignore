@@ -23,7 +23,7 @@ lerna-debug.log*
 logs
 *.log
 
-# Environment Variables
+# Environment Variables — keep .env.example committed, ignore real secrets
 .env
 .env.local
 .env.development.local
