@@ -289,10 +289,6 @@ export default function GameTable({ gameState, socket }: { gameState: any, socke
             </div>
 
             <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 4 }}>Win Probability</div>
-                <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--accent)', textShadow: '0 0 20px rgba(34, 197, 94, 0.3)' }}>
-                   {(me?.equity !== null && me?.equity !== undefined) ? `${me.equity}%` : '~%'}
-                </div>
                 {(me?.currentBet > 0 || me?.isAllIn) && (
                    <div style={{ fontSize: 12, color: 'white', marginTop: 8, fontWeight: 600 }}>
                       Current Bet: <span style={{ color: 'var(--accent)'}}>${me?.currentBet}</span>
