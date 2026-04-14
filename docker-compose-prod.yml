@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME:-yourusername}/antipoker-backend:latest
+    container_name: antipoker-backend
+    restart: unless-stopped
+    # 🔒 RIMOSSO: ports esposti pubblicamente (ora gestiti da Caddy)
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # ⚠️ IMPORTANTE: Questa URL viene "baked" nella build statica del frontend.
+        # Deve essere la URL PUBBLICA HTTPS del backend, raggiungibile dal browser.
+        - VITE_BACKEND_URL=${VITE_BACKEND_URL:-https://api.tuodominio.com}
+    image: ${DOCKER_USERNAME:-yourusername}/antipoker-frontend:latest
+    container_name: antipoker-frontend
+    restart: unless-stopped
+    # 🔒 RIMOSSO: porta 3000 esposta (ora gestita da Caddy)
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/healthz" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: antipoker-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - app-network
+    depends_on:
+      - frontend
+      - backend
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
