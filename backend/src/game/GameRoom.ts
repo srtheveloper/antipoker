@@ -2,7 +2,6 @@ import { Player } from './Player';
 import { Deck } from './Deck';
 // @ts-ignore
 import { Hand } from 'pokersolver';
-import { CardGroup, OddsCalculator } from 'poker-odds-calculator';
 
 export type GamePhase = 'waiting' | 'preflop' | 'flop' | 'turn' | 'river' | 'showdown' | 'gameOver';
 
@@ -366,31 +365,7 @@ export class GameRoom {
       }, 10000);
   }
 
-  calculateEquity(playerId: string): number | null {
-    const activePlayers = this.players.filter(p => !p.folded && p.cards.length === 2);
-    if (activePlayers.length < 2) return 100;
-
-    const player = this.players.find(p => p.id === playerId);
-    if (!player || player.folded || player.cards.length !== 2) return null;
-
-    try {
-        const board = this.communityCards.length > 0 ? CardGroup.fromString(this.communityCards.join('')) : undefined;
-        const hands = activePlayers.map(p => CardGroup.fromString(p.cards.join('')));
-        
-        const iterations = this.communityCards.length === 0 ? 1000 : 5000;
-        const result = OddsCalculator.calculate(hands, board, undefined, iterations);
-        
-        const playerIndex = activePlayers.findIndex(p => p.id === playerId);
-        const equity = result.equities[playerIndex].getEquity();
-        return Math.round(equity);
-    } catch(e) {
-        return null;
-    }
-  }
-
   getStateForPlayer(playerId: string) {
-    const equity = this.calculateEquity(playerId);
-
     const playingPlayers = this.players.filter(p => !p.isSpectator);
     const dIndex = this.dealerIndex % (Math.max(1, playingPlayers.length));
     
@@ -421,7 +396,6 @@ export class GameRoom {
       logs: this.logs,
       players: this.players.map(p => ({
         ...p,
-        equity: p.id === playerId ? equity : null,
         cards: p.id === playerId || this.phase === 'showdown' || p.isSpectator ? p.cards : []
       }))
     }
